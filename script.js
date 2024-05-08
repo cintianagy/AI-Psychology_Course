@@ -68,3 +68,102 @@ function draw() {
 // Start the game loop
 draw();
 
+// Collision detection between ball and paddle
+function collisionDetection() {
+    if (ballX > paddleX && ballX < paddleX + paddleWidth && ballY + dy > canvas.height - paddleHeight) {
+        dy = -dy;
+    }
+}
+
+// Main game loop
+function draw() {
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw the paddle and ball
+    drawPaddle();
+    drawBall();
+
+    // Update the ball position
+    ballX += dx;
+    ballY += dy;
+
+    // Bounce the ball off the walls
+    if (ballX + dx > canvas.width - ballRadius || ballX + dx < ballRadius) {
+        dx = -dx;
+    }
+    if (ballY + dy < ballRadius) {
+        dy = -dy;
+    }
+
+    // Collision detection with paddle
+    collisionDetection();
+
+    // Request animation frame
+    requestAnimationFrame(draw);
+}
+
+// Start the game loop
+draw();
+// Event listeners for paddle movement
+document.addEventListener("keydown", keyDownHandler, false);
+document.addEventListener("keyup", keyUpHandler, false);
+
+let rightPressed = false;
+let leftPressed = false;
+
+// Functions to handle key events
+function keyDownHandler(e) {
+    if (e.key === "Right" || e.key === "ArrowRight") {
+        rightPressed = true;
+    } else if (e.key === "Left" || e.key === "ArrowLeft") {
+        leftPressed = true;
+    }
+}
+
+function keyUpHandler(e) {
+    if (e.key === "Right" || e.key === "ArrowRight") {
+        rightPressed = false;
+    } else if (e.key === "Left" || e.key === "ArrowLeft") {
+        leftPressed = false;
+    }
+}
+
+// Main game loop
+function draw() {
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw the paddle and ball
+    drawPaddle();
+    drawBall();
+
+    // Move the paddle
+    if (rightPressed && paddleX < canvas.width - paddleWidth) {
+        paddleX += 7;
+    } else if (leftPressed && paddleX > 0) {
+        paddleX -= 7;
+    }
+
+    // Update the ball position
+    ballX += dx;
+    ballY += dy;
+
+    // Bounce the ball off the walls
+    if (ballX + dx > canvas.width - ballRadius || ballX + dx < ballRadius) {
+        dx = -dx;
+    }
+    if (ballY + dy < ballRadius) {
+        dy = -dy;
+    }
+
+    // Collision detection with paddle
+    collisionDetection();
+
+    // Request animation frame
+    requestAnimationFrame(draw);
+}
+
+// Start the game loop
+draw();
+
