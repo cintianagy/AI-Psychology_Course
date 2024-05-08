@@ -4,10 +4,229 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Breakout Game</title>
-    <link rel="stylesheet" href="styles.css"> <!-- Create this file later -->
+    <style>
+        canvas {
+            border: 1px solid black;
+            display: block;
+            margin: 0 auto;
+        }
+        #scores {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            text-align: right;
+        }
+        #highScore, #score {
+            margin-bottom: 5px;
+        }
+    </style>
 </head>
 <body>
+    <h1>Breakout Game</h1>
+    <p>Welcome to the Breakout Game!</p>
+    <p>Use the left and right arrow keys to move the paddle. Break all the bricks to win!</p>
+    <p><strong>Goal:</strong> Destroy all the bricks by bouncing the ball off the paddle.</p>
+    <p><strong>Scoring:</strong> You earn points for each brick you destroy. Different color bricks have different scores.</p>
+    <p><strong>Controls:</strong> Use the left and right arrow keys to move the paddle.</p>
+    <div id="scores">
+        <p><strong>Highest Score:</strong> <span id="highScore">0</span></p>
+        <p><strong>Score:</strong> <span id="score">0</span></p>
+    </div>
     <canvas id="gameCanvas" width="480" height="320"></canvas>
-    <script src="script.js"></script>
+    <button id="startButton">Start</button>
+    <button id="retryButton" style="display: none;">Retry</button>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const paddleWidth = 75;
+        const paddleHeight = 10;
+        let paddleX = Math.random() * (canvas.width - paddleWidth); // Random starting position of the paddle
+
+        const ballRadius = 10;
+        let ballX = Math.random() * (canvas.width - ballRadius * 2) + ballRadius; // Random starting position of the ball horizontally
+        let ballY = canvas.height - paddleHeight - ballRadius;
+        let dx = 2.5; // Increase ball speed
+        let dy = -2.5; // Increase ball speed
+
+        const brickRowCount = 3;
+        const brickColumnCount = 5;
+        const brickWidth = 75;
+        const brickHeight = 20;
+        const brickPadding = 10;
+        const brickOffsetTop = 30;
+        const brickOffsetLeft = 30;
+
+        const brickColors = ["#0095DD", "#4CAF50", "#FFEB3B", "#FF9800", "#F44336"]; // Different colors for bricks
+        let bricks = [];
+        for (let c = 0; c < brickColumnCount; c++) {
+            bricks[c] = [];
+            for (let r = 0; r < brickRowCount; r++) {
+                const colorIndex = Math.floor(Math.random() * brickColors.length); // Random color index
+                const score = (colorIndex + 1) * 10; // Score increases gradually by ten
+                bricks[c][r] = { x: 0, y: 0, status: 1, color: brickColors[colorIndex], score: score };
+            }
+        }
+
+        let gameStarted = false;
+        let score = 0;
+        let highScore = localStorage.getItem("highScore") || 0;
+
+        function drawPaddle() {
+            ctx.beginPath();
+            ctx.rect(paddleX, canvas.height - paddleHeight, paddleWidth, paddleHeight);
+            ctx.fillStyle = "#000000"; // Paddle color
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(ballX, ballY, ballRadius, 0, Math.PI * 2);
+            ctx.fillStyle = "#000000"; // Ball color
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function drawBricks() {
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    if (bricks[c][r].status === 1) {
+                        let brickX = c * (brickWidth + brickPadding) + brickOffsetLeft;
+                        let brickY = r * (brickHeight + brickPadding) + brickOffsetTop;
+                        bricks[c][r].x = brickX;
+                        bricks[c][r].y = brickY;
+                        ctx.beginPath();
+                        ctx.rect(brickX, brickY, brickWidth, brickHeight);
+                        ctx.fillStyle = bricks[c][r].color; // Brick color
+                        ctx.fill();
+                        ctx.closePath();
+                    }
+                }
+            }
+        }
+
+        function collisionDetection() {
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    let b = bricks[c][r];
+                    if (b.status === 1) {
+                        if (ballX > b.x && ballX < b.x + brickWidth && ballY > b.y && ballY < b.y + brickHeight) {
+                            dy = -dy;
+                            b.status = 0;
+                            score += b.score; // Increase score based on brick color
+                            document.getElementById("score").textContent = score;
+                            if (score > highScore) {
+                                highScore = score;
+                                localStorage.setItem("highScore", highScore);
+                                document.getElementById("highScore").textContent = highScore;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        function draw() {
+            if (!gameStarted) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                drawPaddle();
+                drawBall();
+                drawBricks();
+                return;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawPaddle();
+            drawBall();
+            drawBricks();
+
+            let bricksLeft = 0; // Count bricks that are still present
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    if (bricks[c][r].status === 1) {
+                        bricksLeft++;
+                    }
+                }
+            }
+            if (bricksLeft === 0) { // Check if all bricks are destroyed
+                ctx.font = "30px Arial";
+                ctx.fillText("You won!", canvas.width / 2 - 70, canvas.height / 2);
+                return;
+            }
+
+            if (ballX + dx > canvas.width - ballRadius || ballX + dx < ballRadius) {
+                dx = -dx;
+            }
+            if (ballY + dy < ballRadius) {
+                dy = -dy;
+            } else if (ballY + dy > canvas.height - ballRadius - paddleHeight) {
+                if (ballX > paddleX && ballX < paddleX + paddleWidth) {
+                    dy = -dy;
+                } else {
+                    gameStarted = false;
+                    document.getElementById("retryButton").style.display = "block";
+                }
+            }
+
+            ballX += dx;
+            ballY += dy;
+
+            collisionDetection();
+
+            requestAnimationFrame(draw);
+        }
+
+        document.getElementById("startButton").addEventListener("click", function() {
+            paddleX = Math.random() * (canvas.width - paddleWidth); // Random starting position of the paddle
+            ballX = Math.random() * (canvas.width - ballRadius * 2) + ballRadius; // Random starting position of the ball horizontally
+            gameStarted = true;
+            document.getElementById("startButton").style.display = "none";
+            document.getElementById("retryButton").style.display = "none";
+            draw();
+        });
+
+        document.getElementById("retryButton").addEventListener("click", function() {
+            for (let c = 0; c < brickColumnCount; c++) {
+                for (let r = 0; r < brickRowCount; r++) {
+                    const colorIndex = Math.floor(Math.random() * brickColors.length); // Random color index
+                    const score = (colorIndex + 1) * 10; // Score increases gradually by ten
+                    bricks[c][r] = { x: 0, y: 0, status: 1, color: brickColors[colorIndex], score: score };
+                }
+            }
+            ballX = Math.random() * (canvas.width - ballRadius * 2) + ballRadius; // Random starting position of the ball horizontally
+            ballY = canvas.height - paddleHeight - ballRadius;
+            dx = 2.5; // Increase ball speed
+            dy = -2.5; // Increase ball speed
+            gameStarted = true;
+            document.getElementById("startButton").style.display = "none";
+            document.getElementById("retryButton").style.display = "none";
+            score = 0;
+            document.getElementById("score").textContent = score;
+            draw();
+        });
+
+        document.addEventListener("keydown", function(e) {
+            if (e.key === "Right" || e.key === "ArrowRight") {
+                if (paddleX < canvas.width - paddleWidth) {
+                    paddleX += 30;
+                }
+            } else if (e.key === "Left" || e.key === "ArrowLeft") {
+                if (paddleX > 0) {
+                    paddleX -= 30;
+                }
+            }
+        });
+
+        document.getElementById("highScore").textContent = highScore; // Initialize high score
+    </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
